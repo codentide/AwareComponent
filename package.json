@@ -1,6 +1,6 @@
 {
   "name": "aware-component",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A base class for building reactive Web Components with optional Shadow DOM",
   "main": "src/AwareComponent.js",
   "type": "module",
