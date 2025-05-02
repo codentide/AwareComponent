@@ -59,9 +59,9 @@ export class AwareComponent extends HTMLElement {
       this[name] = newValue;
     }
 
-    // if (typeof this.onAttributeChanged === 'function') {
-    //   this.onAttributeChanged(name, oldValue, newValue)
-    // }
+    if (typeof this.onAttributeChanged === 'function') {
+      this.onAttributeChanged(name, oldValue, newValue)
+    }
 
     if (this._isConnected) this.updateReferences(name);
   }
@@ -78,7 +78,7 @@ export class AwareComponent extends HTMLElement {
   }
 
   onInit(){
-    console.log(this.localName + " initialized");
+    // console.log(this.localName + " initialized");
   }
 
   /**
@@ -89,7 +89,7 @@ export class AwareComponent extends HTMLElement {
      * @returns {void}
   */
   onConnected() {
-    console.log(this.localName + " connected");
+    // console.log(this.localName + " connected");
   }
 
   /**
@@ -167,7 +167,7 @@ export class AwareComponent extends HTMLElement {
     const element = scope.querySelector(query)
 
     if (!element) {
-      console.warn("Elemento " + query + " no encontrado.");
+      // console.warn("Elemento " + query + " no encontrado.");
       return null
     }
 
@@ -189,7 +189,7 @@ export class AwareComponent extends HTMLElement {
     const elements = scope.querySelectorAll(query)
 
     if (!elements || elements.length === 0) {
-      console.warn("Elementos " + query + " no encontrados");
+      // console.warn("Elementos " + query + " no encontrados");
       return []
     }
 
