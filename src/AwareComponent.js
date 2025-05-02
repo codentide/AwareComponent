@@ -1,176 +1,234 @@
 export class AwareComponent extends HTMLElement {
-    /**
-     * @type {HTMLElement}
-     */
-    $root = null
 
-    static get observedAttributes() {
-      return this.observedItems || []
+  constructor() {
+    super()
+
+    const useShadow = this.constructor.useShadow ?? true
+    const cssText = this.constructor.cssText ?? null
+
+    if (useShadow) {
+        this.attachShadow({ mode: 'open' })
+        this.$root = this.shadowRoot
+    } else {
+        this.$root = this
+    }
+    if (useShadow && cssText) {
+      this.decorate(cssText)
+    }
+  }
+
+  /**
+   * The root element of the component.
+   * 
+   * This serves as the main DOM container where all internal queries and operations are scoped.
+   * It is typically assigned during the component's initialization.
+   *
+   * @type {HTMLElement}
+  */
+  $root = null;
+
+  static get observedAttributes() {
+    return this.observedItems || []
+  }
+
+  /**
+   * The template property is used to store the HTML template for the component.
+   * It is typically set during the render method.
+   *
+   * @type {string}
+   * @memberof AwareComponent
+   * @returns {void}
+  */
+  set template(value){
+    this.$root.appendChild(value)
+  }
+
+  get template() {
+    return this.$root.innerHTML
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (oldValue === newValue) return
+
+    const setter = Object.getOwnPropertyDescriptor(
+        Object.getPrototypeOf(this), name)?.set;
+
+    if (setter) {
+      setter.call(this, newValue);
+    } else {
+      this[name] = newValue;
     }
 
-    set template(value){
-      this.$root.appendChild(value)
-    }
+    // if (typeof this.onAttributeChanged === 'function') {
+    //   this.onAttributeChanged(name, oldValue, newValue)
+    // }
 
-    constructor() {
-        super()
+    if (this._isConnected) this.updateReferences(name);
+  }
 
-        const useShadow = this.constructor.useShadow ?? true
-        const cssText = this.constructor.cssText ?? null
+  connectedCallback() {
+    this._isInitialized = true
+    if (typeof this.onInit === 'function') this.onInit()
 
-        if (useShadow) {
-            this.attachShadow({ mode: 'open' })
-            this.$root = this.shadowRoot
-        } else {
-            this.$root = this
-        }
-        if (useShadow && cssText) {
-          this.decorate(cssText)
-        }
-    }
-    
-    attributeChangedCallback(name, oldValue, newValue) {
-      if (oldValue === newValue) return
+    this.render() 
+    this.updateReferences()
 
-      this[name] = newValue
+    this._isConnected = true
+    if (typeof this.onConnected === 'function') this.onConnected()
+  }
 
-      if (typeof this.onAttributeChanged === 'function') {
-        this.onAttributeChanged(name, oldValue, newValue)
-      }
+  onInit(){
+    console.log(this.localName + " initialized");
+  }
 
-      if (this._isConnected) this.updateReferences(name);
-    }
-
-    connectedCallback() {
-      this._isConnected = true
-      if (typeof this.onConnected === 'function') this.onConnected()
-      this.render() 
-      this.updateReferences()
-    }
-
-    /**
-       * Called when the component is connected to the DOM.
-       * This method can be overridden to perform actions after the component is inserted into the DOM.
-       * 
-       * @memberof AwareComponent
-       * @returns {void}
-    */
-    onConnected() {
-      console.log(this.localName + "connected");
-    }
-
-    /**
-     * Applies a CSS stylesheet to the component's shadow DOM.
-     * 
-     * This method creates a new `CSSStyleSheet` and injects the provided CSS text into the shadow DOM
-     * by adopting the stylesheet. The styles will only affect elements inside the shadow DOM.
-     * 
-     * @param {string} cssText - The raw CSS text that will be applied to the component's shadow DOM.
-     * @returns {void}
-    */ 
-    decorate(cssText) {
-      const sheet = new CSSStyleSheet()
-      sheet.replaceSync(cssText)
-      this.shadowRoot.adoptedStyleSheets = [sheet]
-    }
-
-    /**
-     * Renders a fallback message when no custom render method is implemented.
-     * Displays a warning in the console and a centered message in the component.
+  /**
+     * Called when the component is connected to the DOM.
+     * This method can be overridden to perform actions after the component is inserted into the DOM.
      * 
      * @memberof AwareComponent
      * @returns {void}
-    */
-    render() {
-      this.template = html`
-      <style>
-        .no-render {
-          display: flex;
-          justify-content: center;
-          align-items: center;
+  */
+  onConnected() {
+    console.log(this.localName + " connected");
+  }
 
-          width: 100%;
-        }
+  /**
+   * Applies one or more CSS stylesheets to the component's shadow DOM.
+   * 
+   * This method accepts either a single CSS string or an array of CSS strings. Each CSS string is used to create
+   * a new `CSSStyleSheet` and injected into the component's shadow DOM. The styles will only affect elements inside
+   * the shadow DOM.
+   * 
+   * If the component already has stylesheets applied, the new stylesheets will be added to the list of existing ones.
+   * 
+   * @param {string | string[]} css - The raw CSS text or an array of CSS text that will be applied to the component's shadow DOM.
+   * @returns {void}
+  */
+  decorate(css) {
+    const cssArray = Array.isArray(css) ? css : [css]
 
-        .no-render__text {
-          display:inline-block;
+    const newSheets = cssArray.map(text => {
+      const sheet = new CSSStyleSheet()
+      sheet.replaceSync(text)
+      return sheet
+    })
 
-          padding: 1rem 1.6rem;
-          border-radius: .8rem;
+    this.shadowRoot.adoptedStyleSheets = [...(this.shadowRoot.adoptedStyleSheets || []), ...newSheets]
+  }
 
-          font-family: monospace;
-          font-size: 1rem;
-          font-style: italic;
+  /**
+   * Renders a fallback message when no custom render method is implemented.
+   * Displays a warning in the console and a centered message in the component.
+   * 
+   * @memberof AwareComponent
+   * @returns {void}
+  */
+  render() {
+    this.template = html`
+    <style>
+      .no-render {
+        display: flex;
+        justify-content: center;
+        align-items: center;
 
-          color: lightcoral;
-          background-color:rgb(37, 19, 19);
-        }
-      </style>
-      <div class="no-render">
-        <p class="no-render__text" title="Use render() function in your component">No Render() in ${this.tagName.toLowerCase()}</p>
-      </div>`
-      console.warn(`No Render() in ${this.tagName.toLowerCase()} implemented`)
+        width: 100%;
+      }
+
+      .no-render__text {
+        display:inline-block;
+
+        padding: 1rem 1.6rem;
+        border-radius: .8rem;
+
+        font-family: monospace;
+        font-size: 1rem;
+        font-style: italic;
+
+        color: lightcoral;
+        background-color:rgb(37, 19, 19);
+      }
+    </style>
+    <div class="no-render">
+      <p class="no-render__text" title="Use render() function in your component">No Render() in ${this.tagName.toLowerCase()}</p>
+    </div>`
+    console.warn(`No Render() in ${this.tagName.toLowerCase()} implemented`)
+  }
+
+  /**
+   * Selects the first element within the component's root element that matches the given CSS selector.
+   * 
+   * This method uses `querySelector` to find the first matching element within the root element
+   * of the component, which is either the shadow DOM or the light DOM, depending on the component's configuration.
+   * 
+   * @param {string} query - The CSS selector to match the elements.
+   * @returns {Element|null} The first matching element, or `null` if no elements match.
+  */
+  select(query, scope = this.$root) {
+    const element = scope.querySelector(query)
+
+    if (!element) {
+      console.warn("Elemento " + query + " no encontrado.");
+      return null
     }
 
-    /**
-     * Selects the first element within the component's root element that matches the given CSS selector.
-     * 
-     * This method uses `querySelector` to find the first matching element within the root element
-     * of the component, which is either the shadow DOM or the light DOM, depending on the component's configuration.
-     * 
-     * @param {string} query - The CSS selector to match the elements.
-     * @returns {Element|null} The first matching element, or `null` if no elements match.
-    */
-    select(query) {
-      return this.$root.querySelector(query)
+    return element
+  }
+
+  /**
+   * Selects all elements within the component's root element that match the given CSS selector.
+   *
+   * This method uses `querySelectorAll` to find all matching elements within the given scope 
+   * (defaults to the component's root element). It returns an array of all matching elements.
+   * If no elements are found, it logs a warning and returns an empty array.
+   *
+   * @param {string} query - The CSS selector to match the elements.
+   * @param {Element} [scope=this.$root] - The scope in which to search for the elements.
+   * @returns {Element[]} An array of all matching elements, or an empty array if none are found.
+  */
+  selectAll(query, scope = this.$root) {
+    const elements = scope.querySelectorAll(query)
+
+    if (!elements || elements.length === 0) {
+      console.warn("Elementos " + query + " no encontrados");
+      return []
     }
 
-    /**
-     * Selects all elements within the component's root element that match the given CSS selector.
-     * 
-     * This method uses `querySelectorAll` to find all matching elements within the root element
-     * of the component. It returns a static NodeList of all matching elements.
-     * 
-     * @param {string} query - The CSS selector to match the elements.
-     * @returns {NodeList} A NodeList of all matching elements, or an empty NodeList if no elements match.
-    */  
-    selectAll(query) {
-      return this.$root.querySelectorAll(query)
-    }
+    return Array.from(elements)
+  }
 
-    /**
-     * Updates the content of elements with the `data-ref` attribute, based on the component's properties.
-     * 
-     * This method searches for all elements within the component's root element that have the `data-ref` attribute
-     * and updates their content according to the corresponding property value of the component. It only updates the
-     * elements whose `data-ref` matches the property name.
-     * 
-     * If a specific attribute name (`changedAttribute`) is provided, the method only updates elements that correspond
-     * to that attribute.
-     *
-     * @param {string|null} [changedAttribute=null] - The name of the attribute to filter the updates (optional).
-     * If provided, only elements whose `data-ref` matches this attribute will be updated.
-    */
-    updateReferences(changedAttribute = null) {
-      const references = [...this.selectAll('[data-ref]')]
+  /**
+   * Updates the content of elements with the `data-ref` attribute, based on the component's properties.
+   * 
+   * This method searches for all elements within the component's root element that have the `data-ref` attribute
+   * and updates their content according to the corresponding property value of the component. It only updates the
+   * elements whose `data-ref` matches the property name.
+   * 
+   * If a specific attribute name (`changedAttribute`) is provided, the method only updates elements that correspond
+   * to that attribute.
+   *
+   * @param {string|null} [changedAttribute=null] - The name of the attribute to filter the updates (optional).
+   * If provided, only elements whose `data-ref` matches this attribute will be updated.
+  */
+  updateReferences(changedAttribute = null) {
+    const references = [...this.selectAll('[data-ref]')]
 
-      references.forEach(element => {
-        const property = element.getAttribute('data-ref')
+    references.forEach(element => {
+      const property = element.getAttribute('data-ref')
 
-        if (!property || changedAttribute && property !== changedAttribute) return
+      if (!property || changedAttribute && property !== changedAttribute) return
 
-        const value = this[property]
-        if (value == null) return
+      const value = this[property]
+      if (value == null) return
 
-        if (element.localName === 'img') {
-          element.setAttribute('data-value', value)
-          element.setAttribute('src', value)
-        } else {
-          element.setAttribute('data-value', value)
-          element.textContent = value
-        }
-      })
-    }
+      if (element.localName === 'img') {
+        element.setAttribute('data-value', value)
+        element.setAttribute('src', value)
+      } else {
+        element.setAttribute('data-value', value)
+        element.textContent = value
+      }
+    })
+  }
 }
 
 // Escapa caracteres peligrosos para prevenir inyecciones HTML/JS (XSS)
