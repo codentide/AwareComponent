@@ -221,6 +221,7 @@ export class AwareComponent extends HTMLElement {
       if (value == null) return
 
       if (element.localName === 'img') {
+        
         element.setAttribute('data-value', value)
         element.setAttribute('src', value)
       } else {
