@@ -7,13 +7,12 @@ export class UserCard extends AwareComponent {
     static cssText = styleSheet
 
     onInit(){
-        this.name = "Axelus" 
+
     }
 
     render() {
         this.template = html`
-        <div class="user-card">
-            </heading-box>
+        <div class="user-card" title="({name})" email="({})">
             <h2>({name})</h2>
             <p>({email})</p>
             <div class="user-card__button-box">
@@ -44,14 +43,13 @@ export class UserCard extends AwareComponent {
                 input.value = ""
             }
         })
-
     }
 
     // Setters and getters
-
     set email(value){
         console.log("[EMAIL]", this.email);
         this.setAttribute("email", value)
+        this.select("div").setAttribute("email", value)
     }
 
     get email(){

@@ -214,14 +214,34 @@ export class AwareComponent extends HTMLElement {
 
     references.forEach(element => {
       const property = element.getAttribute('data-ref')
+      if (property === '') {
+        const attributeReferences = [...element.attributes]
+          .filter(attr => attr.name.startsWith('data-ref-'))
+  
+        attributeReferences.forEach(attr => {
+          const key = attr.name.replace('data-ref-', '')
+          const prop = attr.value                         
+          const value = this[prop]
+  
+          console.log(`[${key}] = ${value}`);
 
-      if (!property || changedAttribute && property !== changedAttribute) return
+          if (value !== undefined) {
+            element.setAttribute(key, value)
 
+          }
+        })
+  
+        return // ya procesado, no seguimos con contenido
+      }
+  
+      // 🚫 Si no coincide el atributo cambiado, lo saltamos
+      if (!property || (changedAttribute && property !== changedAttribute)) return
+  
       const value = this[property]
       if (value == null) return
-
+  
+      // 🖼️ Si es una imagen, se actualiza el src
       if (element.localName === 'img') {
-        
         element.setAttribute('data-value', value)
         element.setAttribute('src', value)
       } else {
@@ -230,6 +250,7 @@ export class AwareComponent extends HTMLElement {
       }
     })
   }
+  
 }
 
 // Escapa caracteres peligrosos para prevenir inyecciones HTML/JS (XSS)
@@ -242,42 +263,29 @@ function escapeHTML(str) {
     .replace(/'/g, "&#039;"); // ' se vuelve &#039;
 }
 
-/**
- * Safely renders an HTML template literal, escaping dynamic values to prevent XSS
- * and replacing `({variable})` markers with <span> elements containing `data-ref` attributes.
- * 
- * @function html
- * @param {TemplateStringsArray} templates - The static parts of the template literal.
- * @param {...any} values - The dynamic values to interpolate, which will be HTML-escaped.
- * @returns {DocumentFragment} A safe HTML fragment ready to be inserted into the DOM.
- * 
- * @example
- * const name = "<script>alert('xss')</script>";
- * const frag = html`Hello ({user}), your name is: ${name}`;
- * document.body.appendChild(frag);
- * 
- * // Renders:
- * // Hello <span data-ref="user">user</span>, your name is: &lt;script&gt;alert('xss')&lt;/script&gt;
- * 
- * @remarks
- * The `({variable})` syntax is used as a placeholder for later dynamic updates,
- * which can be targeted via `[data-ref="variable"]`.
- */
+// Previene injections
 export function html(templates, ...values) {
   const template = document.createElement('template')
-  let str = templates[0]
+  let str = ''
 
-  values.forEach((val, i) => {
-    str += escapeHTML(val) + templates[i + 1]
+  // Interpolación básica de templates
+  templates.forEach((tpl, i) => {
+    str += tpl
+    if (i < values.length) str += values[i]
   })
 
-  // Detectar ({variable}) incluyendo los paréntesis
-  const regex = /\(\{([^}]+)\}\)/g
-  str = str.replace(regex, (_, key) => {
-    const safeRef = escapeHTML(key)
-    return `<span data-ref="${safeRef}">${safeRef}</span>`
+  // 🔧 Detectar y reemplazar atributos del tipo key="({variable})"
+  const attrRegex = /([a-zA-Z0-9_-]+)="\(\{([a-zA-Z0-9_]+)\}\)"/g
+  const attrMatches = [...str.matchAll(attrRegex)]
+
+  attrMatches.forEach(([full, attr, variable]) => {
+    const replacement = `${attr}="" data-ref-${attr}="${variable}" data-ref` 
+    str = str.replace(full, replacement)
   })
 
+  // 🔧 Detectar y reemplazar ({variable}) dentro del contenido
+  const contentRegex = /\(\{([a-zA-Z0-9_]+)\}\)/g
+  str = str.replace(contentRegex, (_, key) => `<span data-ref="${key}"></span>`)
   template.innerHTML = str.trim()
   return template.content.cloneNode(true)
 }
