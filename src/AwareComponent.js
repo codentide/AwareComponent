@@ -56,7 +56,8 @@ export class AwareComponent extends HTMLElement {
     if (setter) {
       setter.call(this, newValue);
     } else {
-      this[name] = newValue;
+      const propName = name.replace(/-([a-z])/g, (_, char) => char.toUpperCase());
+      this[propName] = newValue;
     }
 
     if (typeof this.onAttributeChanged === 'function') {
