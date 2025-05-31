@@ -13,7 +13,7 @@ export class UserCard extends AwareComponent {
     render() {
         this.template = html`
         <div class="user-card" title="({name})" email="({})">
-            <h2>({name})</h2>
+            <h2>${this.name}</h2>
             <p>({email})</p>
             <div class="user-card__button-box">
                 <button data-id="update-name">Update name</button>

@@ -25,16 +25,21 @@ Or simply import it directly from a CDN if you're not using a bundler:
 ## Usage Example
 
 ```js
-import { AwareComponent } from 'aware-component'
+import { AwareComponent, html } from 'aware-component'
 
 class UserCard extends AwareComponent {
-  static observedItems = ['name', 'age']
+  static observedItems = ['user-name', 'age']
+  static cssText = /*css*/`
+    div{
+      // css..
+    }
+  `
 
   render() {
-    this.$root.innerHTML = `
+    this.template = html`
       <div>
-        <h1 data-ref="name"></h1>
-        <p data-ref="age"></p>
+        <h1>${this.userName}</h1>
+        <p>${this.age}</p>
       </div>
     `
   }
@@ -46,7 +51,7 @@ customElements.define('user-card', UserCard)
 Then in your HTML:
 
 ```html
-<user-card name="Jane" age="28"></user-card>
+<user-card user-name="Jane" age="28"></user-card>
 ```
 
 ## 🔧 API and Features
@@ -57,14 +62,14 @@ Then in your HTML:
 - `render()`: Method to be overridden to define the component's DOM.
 - `updateReferences(attr?)`: Dynamically updates elements with `data-ref` matching the attribute name.
 
-## 🤝 Authors
+## Authors
 
 - **Marco Del Boccio** - [Email](mailto:marcodelboccio77@email.com)
 - **Diego Torres** - [Email](mailto:diegotorres0303@email.com)
 
 Both contributed equally to the creation and design of this component.
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 

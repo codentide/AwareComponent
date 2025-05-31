@@ -40,6 +40,7 @@ export class AwareComponent extends HTMLElement {
    * @returns {void}
   */
   set template(value){
+    while (this.$root.firstChild) this.$root.removeChild(this.$root.firstChild)
     this.$root.appendChild(value)
   }
 
@@ -71,7 +72,9 @@ export class AwareComponent extends HTMLElement {
     this._isInitialized = true
     if (typeof this.onInit === 'function') this.onInit()
 
-    this.render() 
+    this.template = this.render() 
+    // this.render()
+
     this.updateReferences()
 
     this._isConnected = true
@@ -125,7 +128,7 @@ export class AwareComponent extends HTMLElement {
    * @returns {void}
   */
   render() {
-    this.template = html`
+    return html`
     <style>
       .no-render {
         display: flex;
